@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "LeetSync Pro",
+  "version": "1.0.0",
+  "description": "Auto-syncs accepted LeetCode submissions to GitHub with intelligent categorization.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "notifications"
+  ],
+  "host_permissions": [
+    "*://leetcode.com/*",
+    "http://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://leetcode.com/problems/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "128": "icons/lcs_icon.png"
+    },
+    "default_popup": "popup.html",
+    "default_title": "LeetSync Pro"
+  },
+  "icons": {
+    "128": "icons/lcs_icon.png"
+  }
+}
