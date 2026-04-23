@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeetSync Pro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #f89f1b 0%, #f7b731 100%);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 { font-size: 16px; font-weight: 700; color: #0d1117; }
+    header span { font-size: 11px; color: #0d1117; opacity: 0.7; }
+
+    section { padding: 14px 16px; border-bottom: 1px solid #21262d; }
+
+    .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+
+    #last-sync {
+      background: #161b22;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    #last-sync a { color: #58a6ff; text-decoration: none; }
+    #last-sync .tag {
+      display: inline-block;
+      background: #1f6feb33;
+      color: #58a6ff;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      margin-right: 4px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat-card {
+      background: #161b22;
+      border-radius: 6px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .stat-card .num { font-size: 20px; font-weight: 700; }
+    .stat-card .lbl { font-size: 10px; color: #8b949e; margin-top: 2px; }
+    .easy   { color: #3fb950; }
+    .medium { color: #f89f1b; }
+    .hard   { color: #f85149; }
+
+    button {
+      width: 100%;
+      padding: 9px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    button:hover { opacity: .85; }
+    button:active { opacity: .7; }
+
+    #btn-bulk { background: #238636; color: #fff; margin-bottom: 8px; }
+    #btn-dash { background: #1f6feb; color: #fff; }
+
+    footer {
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 10px;
+      color: #484f58;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>⚡ LeetSync Pro</h1>
+      <span>Auto-sync your LeetCode solutions</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="label">Last Synced</div>
+    <div id="last-sync">
+      <span style="color:#8b949e">No syncs yet this session.</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="label">Stats</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="num" id="total">—</div><div class="lbl">Total</div></div>
+      <div class="stat-card"><div class="num easy" id="easy">—</div><div class="lbl">Easy</div></div>
+      <div class="stat-card"><div class="num medium" id="medium">—</div><div class="lbl">Medium</div></div>
+    </div>
+  </section>
+
+  <section>
+    <button id="btn-bulk">⬆ Bulk Sync Last 20</button>
+    <button id="btn-dash">📊 Open Dashboard</button>
+  </section>
+
+  <footer>Backend: <span id="backend-status">checking…</span></footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
