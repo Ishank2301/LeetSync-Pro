@@ -1,90 +1,109 @@
 // content.js — LeetSync Pro
-// Detects "Accepted" on LeetCode's SPA and extracts submission data.
-
+// STRICT MODE: Only syncs AFTER "Accepted" is received from a real submission
 console.log("[LeetSync Pro] Content script active.");
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let lastDetectedUrl = "";
+let lastAcceptedSignature = "";  // Unique key for each Accepted result
 let syncInProgress = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Convert a URL slug like "two-sum" → "Two Sum" */
 function slugToTitle(slug) {
-  return slug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
-/** Read the active language from LeetCode's language selector button. */
-function extractLanguage() {
-  const selectors = [
-    '[data-e2e-locator="console-language-selector"]',
-    'button[id*="headlessui-menu-button"]',
-    ".ant-select-selection-item",
-  ];
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
-    if (el?.textContent?.trim()) return el.textContent.trim();
-  }
-  return "Unknown";
-}
-
-/** Read difficulty from the problem description panel. */
 function extractDifficulty() {
-  // New LeetCode UI uses a class like "text-difficulty-easy" / "-medium" / "-hard"
+  // LeetCode uses class names like "text-difficulty-easy", "-medium", "-hard"
   const el = document.querySelector('[class*="text-difficulty-"]');
   if (el) {
     const cls = el.className;
-    if (cls.includes("easy")) return "Easy";
+    if (cls.includes("easy"))   return "Easy";
     if (cls.includes("medium")) return "Medium";
-    if (cls.includes("hard")) return "Hard";
-    return el.textContent.trim();
+    if (cls.includes("hard"))   return "Hard";
   }
-  return "Medium"; // Safe fallback
+  // Fallback: look for the plain text labels in the problem header
+  const all = document.querySelectorAll("*");
+  for (const el of all) {
+    const t = el.childNodes.length === 1 && el.textContent.trim();
+    if (t === "Easy")   return "Easy";
+    if (t === "Medium") return "Medium";
+    if (t === "Hard")   return "Hard";
+  }
+  return "Medium";
 }
 
-/**
- * Extract source code from Monaco Editor's DOM.
- * This is the most reliable approach for Manifest V3 (no script injection needed).
- */
+function extractLanguage() {
+  // LeetCode stores the selected language in several places depending on UI version
+  const selectors = [
+    // New UI — the editor toolbar button showing current language
+    '[data-e2e-locator="editor-lang-select"] button',
+    '[data-e2e-locator="editor-lang-select"]',
+    // Older UI
+    '.ant-select-selection-item',
+    // The tab that shows language name in submissions panel
+    '[data-layout-path*="language"] button',
+  ];
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    const text = el?.textContent?.trim();
+    // Skip if it's "Choose a type" or empty or too long to be a language name
+    if (text && text.length < 30 && !text.toLowerCase().includes("choose")) {
+      return text;
+    }
+  }
+  return "python3"; // safe default — most users use Python
+}
+
 function extractCode() {
+  // Monaco editor (primary)
   const lines = document.querySelectorAll(".view-lines .view-line");
   if (lines.length > 0) {
-    return Array.from(lines)
-      .map((l) => l.innerText)
-      .join("\n");
+    return Array.from(lines).map((l) => l.innerText).join("\n");
   }
-  // Fallback: CodeMirror (some LeetCode variants)
+  // CodeMirror fallback
   const cm = document.querySelector(".CodeMirror-code");
   if (cm) return cm.innerText;
   return null;
 }
 
-/** Detect whether the result banner shows "Accepted". */
-function isAccepted() {
-  // Primary: data-e2e locator
-  const resultEl = document.querySelector('[data-e2e-locator="submission-result"]');
-  if (resultEl?.textContent?.trim() === "Accepted") return true;
+/** Returns a unique key for the current accepted submission to prevent duplicates */
+function getSubmissionKey() {
+  const slug = window.location.pathname.split("/").filter(Boolean)[1] || "";
+  // LeetCode puts the submission ID in the URL after acceptance e.g. /submissions/12345/
+  const match = window.location.pathname.match(/submissions\/(\d+)/);
+  const subId = match ? match[1] : Date.now().toString();
+  return `${slug}::${subId}`;
+}
 
-  // Fallback: span text scan (catches alternate UI versions)
-  const spans = document.querySelectorAll("span");
+function isAccepted() {
+  // Primary selector
+  const el = document.querySelector('[data-e2e-locator="submission-result"]');
+  if (el?.textContent?.trim() === "Accepted") return true;
+  // Fallback: look for visible "Accepted" text only in the result area
+  const resultArea = document.querySelector('[class*="result"]') || document.body;
+  const spans = resultArea.querySelectorAll("span");
   return Array.from(spans).some(
     (s) => s.textContent.trim() === "Accepted" && s.offsetParent !== null
   );
 }
 
-// ── Core extraction + dispatch ─────────────────────────────────────────────────
+// ── Core sync ─────────────────────────────────────────────────────────────────
 
 async function extractAndSync() {
-  if (syncInProgress) return;
+  if (syncInProgress) {
+    console.log("[LeetSync Pro] Sync already in progress");
+    return;
+  }
   syncInProgress = true;
 
   try {
-    const urlParts = window.location.pathname.split("/");
+    const urlParts = window.location.pathname.split("/").filter(Boolean);
     const problemsIdx = urlParts.indexOf("problems");
-    if (problemsIdx === -1) return;
+    if (problemsIdx === -1) {
+      console.warn("[LeetSync Pro] Not on a problem page");
+      syncInProgress = false;
+      return;
+    }
 
     const slug = urlParts[problemsIdx + 1];
     const title = slugToTitle(slug);
@@ -92,12 +111,9 @@ async function extractAndSync() {
     const language = extractLanguage();
     const code = extractCode();
 
-    if (!code || code.trim().length < 5) {
-      console.warn("[LeetSync Pro] Code extraction failed — retrying in 2 s...");
-      setTimeout(() => {
-        syncInProgress = false;
-        extractAndSync();
-      }, 2000);
+    if (!code || code.trim().length < 10) {
+      console.warn("[LeetSync Pro] Code too short or missing");
+      syncInProgress = false;
       return;
     }
 
@@ -106,39 +122,49 @@ async function extractAndSync() {
       code,
       language,
       difficulty,
-      url: window.location.href,
+      url: `https://leetcode.com/problems/${slug}/`,
     };
 
-    console.log("[LeetSync Pro] Dispatching payload:", payload);
+    console.log("[LeetSync Pro] ✅ Syncing:", title, "|", difficulty, "|", language);
     chrome.runtime.sendMessage({ action: "SYNC_SUBMISSION", payload });
 
   } catch (err) {
-    console.error("[LeetSync Pro] Extraction error:", err);
+    console.error("[LeetSync Pro] Error:", err);
   } finally {
     syncInProgress = false;
   }
 }
 
-// ── MutationObserver — SPA-aware ──────────────────────────────────────────────
+// ── MutationObserver — debounced to prevent multiple rapid fires ──────────────
 
 const observer = new MutationObserver(() => {
-  const currentUrl = window.location.href;
+  if (!isAccepted()) return;
 
-  if (isAccepted() && currentUrl !== lastDetectedUrl) {
-    lastDetectedUrl = currentUrl;
-    console.log("[LeetSync Pro] ✅ Accepted submission detected!");
-    // Give the editor ~2 s to fully render before extracting
-    setTimeout(extractAndSync, 2000);
+  // Create a unique signature for this "Accepted" result
+  // This prevents syncing the same result multiple times
+  const resultEl = document.querySelector('[data-e2e-locator="submission-result"]');
+  const signature = resultEl?.textContent + "_" + window.location.href;
+
+  if (signature === lastAcceptedSignature) {
+    console.log("[LeetSync Pro] This Accepted result already synced");
+    return;
   }
+
+  lastAcceptedSignature = signature;
+  console.log("[LeetSync Pro] ✅ NEW Accepted detected — syncing in 2s...");
+  
+  // Wait for Monaco to fully render
+  setTimeout(extractAndSync, 2000);
 });
 
-observer.observe(document.body, { childList: true, subtree: true });
+observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 
-// Also listen for URL changes (SPA navigation via History API)
+// Reset accepted signature on navigation
 let _lastHref = window.location.href;
 setInterval(() => {
   if (window.location.href !== _lastHref) {
     _lastHref = window.location.href;
-    lastDetectedUrl = ""; // Reset so next acceptance on a new problem is captured
+    lastAcceptedSignature = "";
+    console.log("[LeetSync Pro] Navigated to new page — reset.");
   }
 }, 1000);
