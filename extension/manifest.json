@@ -26,12 +26,12 @@
   ],
   "action": {
     "default_icon": {
-      "128": "icons/lcs_icon.png"
+      "128": "icons/lcp_icon.png"
     },
     "default_popup": "popup.html",
     "default_title": "LeetSync Pro"
   },
   "icons": {
-    "128": "icons/lcs_icon.png"
+    "128": "icons/lcp_icon.png"
   }
 }
