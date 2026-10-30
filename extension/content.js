@@ -76,15 +76,32 @@ function getSubmissionKey() {
 }
 
 function isAccepted() {
-  // Primary selector
-  const el = document.querySelector('[data-e2e-locator="submission-result"]');
-  if (el?.textContent?.trim() === "Accepted") return true;
-  // Fallback: look for visible "Accepted" text only in the result area
-  const resultArea = document.querySelector('[class*="result"]') || document.body;
-  const spans = resultArea.querySelectorAll("span");
-  return Array.from(spans).some(
-    (s) => s.textContent.trim() === "Accepted" && s.offsetParent !== null
-  );
+  // Primary modern selector
+  const primarySelectors = [
+    'span[data-e2e-locator="submission-result"]',
+    'div[data-e2e-locator="submission-result"]',
+    '.result-status',
+    '.resultState',
+    '[class*="status-accepted"]',
+    '[data-status="accepted"]',
+  ];
+
+  for (const sel of primarySelectors) {
+    const el = document.querySelector(sel);
+    if (el && el.textContent.trim().toLowerCase().includes("accepted")) {
+      return true;
+    }
+  }
+
+  // Fallback: look for visible "Accepted" text within the result area
+  const resultArea = document.querySelector('[class*="result"]') || document.querySelector('[class*="submission"]') || document.body;
+  const elements = resultArea.querySelectorAll("span, div, p");
+  for (const el of elements) {
+    if (el.childNodes.length === 1 && el.textContent.trim() === "Accepted" && el.offsetParent !== null) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // ── Core sync ─────────────────────────────────────────────────────────────────
