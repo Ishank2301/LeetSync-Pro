@@ -26,8 +26,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build output
-dashboard/dist/
-dashboard/.vite/
+dist/
+.vite/
+.aistudio/
+*.local
+bun.lock
+*.zip
+.playwright-cli/
 
 # OS
 .DS_Store

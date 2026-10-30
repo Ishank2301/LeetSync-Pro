@@ -1,0 +1,8 @@
+{
+  "name": "LeetSync Pro",
+  "description": "Automatically sync accepted LeetCode solutions to GitHub with intelligent categorization, activity tracking, and analytics dashboard.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
