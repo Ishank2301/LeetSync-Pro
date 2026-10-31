@@ -4,6 +4,8 @@ import { DifficultyPie, CategoryBar } from "./components/Charts";
 import ActivityFeed from "./components/ActivityFeed";
 import ActivityHeatmap from "./components/ActivityHeatmap";
 import MovingAverageCard from "./components/MovingAverageCard";
+import InsightsSection from "./components/InsightsSection";
+import InsightsHighlightCard from "./components/InsightsHighlightCard";
 import ProblemLibrary from "./components/ProblemLibrary";
 import SubmissionTester from "./components/SubmissionTester";
 import ExtensionPopupModal from "./components/ExtensionPopupModal";
@@ -46,7 +48,7 @@ export default function App() {
     return DEFAULT_SETTINGS;
   });
 
-  const [activeTab, setActiveTab] = useState<"overview" | "problems" | "revision">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "problems" | "revision" | "insights">("overview");
   const [bulkState, setBulkState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [toast, setToast] = useState<{ msg: string; type: "info" | "success" | "error" } | null>(null);
 
@@ -240,6 +242,25 @@ export default function App() {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab("insights")}
+              style={{
+                background: activeTab === "insights" ? "var(--surface2)" : "transparent",
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 12px",
+                color: activeTab === "insights" ? "#f59e0b" : "var(--muted)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+              title="Circadian rhythm, consistency grading, and peak productivity hours"
+            >
+              <span>💡 Insights</span>
+            </button>
           </nav>
         </div>
 
@@ -407,6 +428,17 @@ export default function App() {
             {/* 7-Day Moving Average Productivity Trends Section */}
             <section>
               <MovingAverageCard dailyActivity={stats.dailyActivity} />
+            </section>
+
+            {/* Insights Highlight Card */}
+            <section>
+              <InsightsHighlightCard
+                submissions={stats.history}
+                dailyActivity={stats.dailyActivity}
+                currentStreak={stats.streak.currentStreak}
+                longestStreak={stats.streak.longestStreak}
+                onOpenFullInsights={() => setActiveTab("insights")}
+              />
             </section>
 
             {/* Breakdown Charts Section */}
@@ -592,6 +624,17 @@ export default function App() {
               )}
             </div>
           </div>
+        )}
+
+        {/* TAB 4: INSIGHTS & CIRCADIAN FOCUS */}
+        {activeTab === "insights" && (
+          <InsightsSection
+            submissions={stats.history}
+            dailyActivity={stats.dailyActivity}
+            currentStreak={stats.streak.currentStreak}
+            longestStreak={stats.streak.longestStreak}
+            onNavigateToProblems={() => setActiveTab("problems")}
+          />
         )}
       </main>
 
